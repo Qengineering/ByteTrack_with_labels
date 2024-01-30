@@ -70,7 +70,7 @@ void BYTETracker::update(vector<bbox_t>& objects)
 
 			STrack strack(a, score, obj_id, this);
 			if (score >= track_thresh) detections.push_back(strack);
-			else  			          detections_low.push_back(strack);
+			else  			   detections_low.push_back(strack);
 		}
 	}
 ```
@@ -103,9 +103,9 @@ for (size_t k = 0; k < btlbrs.size(); k++){
 
 #### Final remarks.
 
-The original code uses std::vector<float> to hold the bounding boxes.<br>
-We use a simple struct because of the fixed number of elements.<br>
-A std::vector requires more overhead. And the code becomes more readable.<br><br>
+The original code uses `std::vector<float>` to hold the bounding boxes.<br>
+We use a simple `struct` because of the fixed number of elements.<br>
+A `std::vector` requires more overhead. And the code becomes more readable.<br><br>
 We only adapted the C++ implementation. Python isn't supported. If someone likes to port the code to Python, be our guest.<br>
 
 ```
