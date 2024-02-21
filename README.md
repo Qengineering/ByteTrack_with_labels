@@ -1,4 +1,3 @@
-https://ln5.sync.com/dl/17f69ba50/87wpj6pu-75xwikr6-8dum8653-4wt8eemr
 # ByteTrack with (COCO) labels
 
 ![output image]( https://qengineering.eu/github/BYTEtrackGraph.jpg )
