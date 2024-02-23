@@ -22,6 +22,7 @@ public:
 	Scalar get_color(int idx);
 
 private:
+        float IoU(Ttlwh &box1, Ttlwh &box2);
 	vector<STrack*> joint_stracks(vector<STrack*> &tlista, vector<STrack> &tlistb);
 	vector<STrack> joint_stracks(vector<STrack> &tlista, vector<STrack> &tlistb);
 
