@@ -21,6 +21,9 @@ BYTETracker::~BYTETracker()
 
 vector<STrack> BYTETracker::update(const vector<Object>& objects)
 {
+    float fiou, miou;
+    int m;
+    Ttlwh a;
 
 	////////////////// Step 1: Get detections //////////////////
 	this->frame_id++;
@@ -223,5 +226,61 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects)
 			output_stracks.push_back(this->tracked_stracks[i]);
 		}
 	}
+
+    //repair labels
+    //re-use state to hold allocated tracks
+    for(size_t i=0; i<output_stracks.size(); i++) output_stracks[i].state=-1;
+
+    for(size_t n=0; n<objects.size();  n++){
+        a.t=objects[n].x;   a.l=objects[n].y;
+        a.w=objects[n].w;   a.h=objects[n].h;
+        miou=0.0; m=-1;
+        for(size_t i=0; i<output_stracks.size(); i++) {
+            fiou = IoU(output_stracks[i].tlwh, a);
+            if(objects[n].obj_id == (unsigned int)output_stracks[i].obj_id){
+                if(fiou>miou){ miou=fiou; m=(int)i; }
+            }
+        }
+        if(miou > 0.1){
+            //found in output stacks, so set
+            output_stracks[m].state=m;
+        }
+        else{
+            //not found, look for the best bbox match
+            //can also be an object leaving the scene.
+            for(size_t i=0; i<output_stracks.size(); i++) {
+                if(output_stracks[i].state<0){
+                    fiou = IoU(output_stracks[i].tlwh, a);
+                    if(fiou>miou){ miou=fiou; m=(int)i; }
+                }
+            }
+            if(miou > 0.5){
+                //found replacement
+                output_stracks[m].state  = m;
+                output_stracks[m].obj_id = objects[n].obj_id;
+                cout << "Repair "<< objects[n].obj_id << endl;
+                //repair the other Straks
+                //vector<STrack> tracked_stracks;
+                for(size_t z=0; z<this->tracked_stracks.size(); z++) {
+                    if(this->tracked_stracks[z].track_id == output_stracks[m].track_id){
+                        this->tracked_stracks[z].obj_id = output_stracks[m].obj_id;
+                    }
+                }
+                //vector<STrack> lost_stracks;
+                for(size_t z=0; z<this->lost_stracks.size(); z++) {
+                    if(this->lost_stracks[z].track_id == output_stracks[m].track_id){
+                        this->lost_stracks[z].obj_id = output_stracks[m].obj_id;
+                    }
+                }
+                //vector<STrack> removed_stracks;
+                for(size_t z=0; z<this->removed_stracks.size(); z++) {
+                    if(this->removed_stracks[z].track_id == output_stracks[m].track_id){
+                        this->removed_stracks[z].obj_id = output_stracks[m].obj_id;
+                    }
+                }
+            }
+        }
+    }
+
 	return output_stracks;
 }
