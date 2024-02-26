@@ -48,13 +48,13 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects)
 	{
 		for(size_t i = 0; i < objects.size(); i++){
 			Ttlwh a;
-			a.t=objects[i].x;
-			a.l=objects[i].y;
-			a.w=objects[i].w;
-			a.h=objects[i].h;
+			a.t=objects[i].rect.x;
+			a.l=objects[i].rect.y;
+			a.w=objects[i].rect.width;
+			a.h=objects[i].rect.height;
 
 			float score = objects[i].prob;
-			int obj_id  = objects[i].obj_id;
+			int obj_id  = objects[i].label;
 
 			STrack strack(a, score, obj_id, this);
 			if (score >= track_thresh) detections.push_back(strack);
@@ -74,7 +74,7 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects)
 	strack_pool = joint_stracks(tracked_stracks, this->lost_stracks);
 
 //	multi_predict(strack_pool, this->kalman_filter); (no static function calls, thread unsafe)
-	(size_t i = 0; i < strack_pool.size(); i++){
+	for(size_t i = 0; i < strack_pool.size(); i++){
 		if(strack_pool[i]->state != TrackState::Tracked) strack_pool[i]->mean[7] = 0;
 		this->kalman_filter.predict(strack_pool[i]->mean, strack_pool[i]->covariance);
 		strack_pool[i]->static_tlwh();
@@ -232,12 +232,14 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects)
     for(size_t i=0; i<output_stracks.size(); i++) output_stracks[i].state=-1;
 
     for(size_t n=0; n<objects.size();  n++){
-        a.t=objects[n].x;   a.l=objects[n].y;
-        a.w=objects[n].w;   a.h=objects[n].h;
+        a.t=objects[n].rect.x;
+        a.l=objects[n].rect.y;
+        a.w=objects[n].rect.width;
+        a.h=objects[n].rect.height;
         miou=0.0; m=-1;
         for(size_t i=0; i<output_stracks.size(); i++) {
             fiou = IoU(output_stracks[i].tlwh, a);
-            if(objects[n].obj_id == (unsigned int)output_stracks[i].obj_id){
+            if(objects[n].label == output_stracks[i].obj_id){
                 if(fiou>miou){ miou=fiou; m=(int)i; }
             }
         }
@@ -256,9 +258,9 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects)
             }
             if(miou > 0.5){
                 //found replacement
-                output_stracks[m].state  = m;
-                output_stracks[m].obj_id = objects[n].obj_id;
-                cout << "Repair "<< objects[n].obj_id << endl;
+                output_stracks[m].state = m;
+                output_stracks[m].obj_id = objects[n].label;
+                //cout << "Repair "<< objects[n].label << endl;
                 //repair the other Straks
                 //vector<STrack> tracked_stracks;
                 for(size_t z=0; z<this->tracked_stracks.size(); z++) {
