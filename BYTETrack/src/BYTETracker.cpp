@@ -1,32 +1,25 @@
 #include "BYTETracker.h"
 #include "STrack.h"
-#include <plog/Log.h>
 #include <fstream>
-//---------------------------------------------------------------------------
-// BYTETracker
-//---------------------------------------------------------------------------
-BYTETracker::BYTETracker(void)
+
+BYTETracker::BYTETracker(int frame_rate, int track_buffer)
 {
-	ID_count = 0;
-}
-//---------------------------------------------------------------------------
-BYTETracker::~BYTETracker()
-{
-}
-//---------------------------------------------------------------------------
-void BYTETracker::Init(int frame_rate, int track_buffer)
-{
-	track_thresh = 0.1;
-	high_thresh = 0.5;
+	track_thresh = 0.5;
+	high_thresh = 0.6;
 	match_thresh = 0.8;
 
 	frame_id = 0;
 	max_time_lost = int(frame_rate / 30.0 * track_buffer);
+	ID_count = 0;
 
-    PLOG_INFO << "Init ByteTrack (max time lost: "<<max_time_lost<<")";
+	cout << "Init ByteTrack!" << endl;
 }
-//---------------------------------------------------------------------------
-void BYTETracker::update(vector<bbox_t>& objects)
+
+BYTETracker::~BYTETracker()
+{
+}
+
+vector<STrack> BYTETracker::update(const vector<Object>& objects)
 {
     float fiou, miou;
     int m;
@@ -80,8 +73,8 @@ void BYTETracker::update(vector<bbox_t>& objects)
 	////////////////// Step 2: First association, with IoU //////////////////
 	strack_pool = joint_stracks(tracked_stracks, this->lost_stracks);
 
-//	multi_predict(strack_pool, this->kalman_filter);
-	for(size_t i = 0; i < strack_pool.size(); i++){
+//	multi_predict(strack_pool, this->kalman_filter); (no static function calls, thread unsafe)
+	(size_t i = 0; i < strack_pool.size(); i++){
 		if(strack_pool[i]->state != TrackState::Tracked) strack_pool[i]->mean[7] = 0;
 		this->kalman_filter.predict(strack_pool[i]->mean, strack_pool[i]->covariance);
 		strack_pool[i]->static_tlwh();
@@ -209,6 +202,8 @@ void BYTETracker::update(vector<bbox_t>& objects)
 	this->tracked_stracks = joint_stracks(this->tracked_stracks, activated_stracks);
 	this->tracked_stracks = joint_stracks(this->tracked_stracks, refind_stracks);
 
+	//std::cout << activated_stracks.size() << std::endl;
+
 	this->lost_stracks = sub_stracks(this->lost_stracks, this->tracked_stracks);
 	for(size_t i = 0; i < lost_stracks.size(); i++){
 		this->lost_stracks.push_back(lost_stracks[i]);
@@ -251,7 +246,7 @@ void BYTETracker::update(vector<bbox_t>& objects)
             output_stracks[m].state=m;
         }
         else{
-            //not found, look for best bbox match
+            //not found, look for the best bbox match
             //can also be an object leaving the scene.
             for(size_t i=0; i<output_stracks.size(); i++) {
                 if(output_stracks[i].state<0){
@@ -263,6 +258,7 @@ void BYTETracker::update(vector<bbox_t>& objects)
                 //found replacement
                 output_stracks[m].state  = m;
                 output_stracks[m].obj_id = objects[n].obj_id;
+                cout << "Repair "<< objects[n].obj_id << endl;
                 //repair the other Straks
                 //vector<STrack> tracked_stracks;
                 for(size_t z=0; z<this->tracked_stracks.size(); z++) {
@@ -286,18 +282,5 @@ void BYTETracker::update(vector<bbox_t>& objects)
         }
     }
 
-	objects.clear();
-
-    for(size_t i = 0; i < output_stracks.size(); i++) {
-        bbox_t B;
-        B.x       =output_stracks[i].tlwh.t;
-        B.y       =output_stracks[i].tlwh.l;
-        B.w       =output_stracks[i].tlwh.w;
-        B.h       =output_stracks[i].tlwh.h;
-        B.obj_id  =output_stracks[i].obj_id;
-        B.prob    =output_stracks[i].score;
-        B.track_id=output_stracks[i].track_id;
-        objects.push_back(B);
-    }
+	return output_stracks;
 }
-//---------------------------------------------------------------------------
