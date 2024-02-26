@@ -2,11 +2,10 @@
 
 #include "STrack.h"
 #include "dataType.h"
-#include "yolo_v2_class.hpp"
 
 class STrack;
 //---------------------------------------------------------------------------
-struct TrackObject
+struct Object
 {
     cv::Rect_<float> rect;
     int label;
@@ -16,12 +15,11 @@ struct TrackObject
 class BYTETracker
 {
 public:
-	BYTETracker(void);
+	BYTETracker(int frame_rate = 30, int track_buffer = 30);
 	~BYTETracker(void);
 
-	void Init(int frame_rate = 30, int track_buffer = 30);
 	unsigned int ID_count;
-	void update(vector<bbox_t>& objects);
+	vector<STrack> update(const vector<Object>& objects);
 	Scalar get_color(int idx);
 private:
   float IoU(Ttlwh &box1, Ttlwh &box2);
