@@ -48,8 +48,8 @@ vector<STrack> BYTETracker::update(const vector<Object>& objects)
 	{
 		for(size_t i = 0; i < objects.size(); i++){
 			Ttlwh a;
-			a.t=objects[i].rect.x;
-			a.l=objects[i].rect.y;
+			a.t=objects[i].rect.y;
+			a.l=objects[i].rect.x;
 			a.w=objects[i].rect.width;
 			a.h=objects[i].rect.height;
 
